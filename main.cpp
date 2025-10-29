@@ -1,10 +1,5 @@
-#include "state.h"
+#include "solver.h"
 #include <iostream>
-#include <vector>
-
-std::vector<State> generateMoves(const State &s);
-bool isWinning(const State &s);
-State getBestMove(const State &s);
 
 int main() {
   State startState;

@@ -1,7 +1,6 @@
-#include "state.h"
+#include "solver.h"
 #include <random>
 #include <unordered_set>
-#include <vector>
 
 std::vector<State> generateMoves(const State &s) {
   std::vector<State> moves;
