@@ -5,9 +5,9 @@
 #include <tuple>
 
 struct State {
-  std::array<int, 2> me;
-  std::array<int, 2> opp;
-  bool myTurn;
+  std::array<int, 2> p1;
+  std::array<int, 2> p2;
+  bool p1Turn;
 
   void normalize();                          // normalize the hands
   bool operator==(const State &other) const; // equality

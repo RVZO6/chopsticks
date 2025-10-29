@@ -8,8 +8,8 @@ std::vector<State> generateMoves(const State &s) {
   // -----------------------------
   // ATTACK MOVES
   // -----------------------------
-  auto &current = s.myTurn ? s.me : s.opp;
-  auto &opponent = s.myTurn ? s.opp : s.me;
+  auto &current = s.p1Turn ? s.p1 : s.p2;
+  auto &opponent = s.p1Turn ? s.p2 : s.p1;
 
   for (int i = 0; i < 2; ++i) {
     if (current[i] == 0)
@@ -30,13 +30,13 @@ std::vector<State> generateMoves(const State &s) {
         continue;
 
       State next = s;
-      auto &nextOpponent = next.myTurn ? next.opp : next.me;
+      auto &nextOpponent = next.p1Turn ? next.p2 : next.p1;
 
       nextOpponent[j] += current[i];
       if (nextOpponent[j] >= 5)
         nextOpponent[j] = 0;
 
-      next.myTurn = !next.myTurn;
+      next.p1Turn = !next.p1Turn;
       next.normalize();
 
       moves.push_back(next);
@@ -46,8 +46,8 @@ std::vector<State> generateMoves(const State &s) {
   // -----------------------------
   // SPLIT MOVES
   // -----------------------------
-  int cur0 = s.myTurn ? s.me[0] : s.opp[0];
-  int cur1 = s.myTurn ? s.me[1] : s.opp[1];
+  int cur0 = s.p1Turn ? s.p1[0] : s.p2[0];
+  int cur1 = s.p1Turn ? s.p1[1] : s.p2[1];
   int total = cur0 + cur1;
 
   for (int i = 0; i <= total / 2; ++i) {
@@ -58,11 +58,11 @@ std::vector<State> generateMoves(const State &s) {
       continue;
 
     State next = s;
-    auto &nextCurrent = next.myTurn ? next.me : next.opp;
+    auto &nextCurrent = next.p1Turn ? next.p1 : next.p2;
     nextCurrent[0] = i;
     nextCurrent[1] = j;
 
-    next.myTurn = !next.myTurn;
+    next.p1Turn = !next.p1Turn;
     next.normalize();
 
     moves.push_back(next);
@@ -75,7 +75,7 @@ bool isWinning(const State &s) {
   static std::unordered_map<State, bool, StateHash> memo;
   static std::unordered_set<State, StateHash> inProgress;
 
-  auto &current = s.myTurn ? s.me : s.opp;
+  auto &current = s.p1Turn ? s.p1 : s.p2;
 
   if (current[0] == 0 && current[1] == 0) {
     return false;
