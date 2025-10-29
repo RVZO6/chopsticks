@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <array>
 #include <functional>
+#include <vector>
 
 // Game outcome from current player's perspective
 enum class Outcome {
@@ -17,6 +18,8 @@ struct State {
   std::array<int, 2> p1;
   std::array<int, 2> p2;
   Player turn;
+  std::vector<int> p1ChangedValues;
+  std::vector<int> p2ChangedValues;
 
   void normalize();
   bool operator==(const State &other) const;

@@ -27,11 +27,19 @@ std::vector<State> generateMoves(const State &s) {
         continue;
 
       State next = s;
+      next.p1ChangedValues.clear();
+      next.p2ChangedValues.clear();
       auto &nextOpponent = next.turn == Player::P1 ? next.p2 : next.p1;
 
       nextOpponent[j] += current[i];
       if (nextOpponent[j] >= 5)
         nextOpponent[j] = 0;
+
+      if (&nextOpponent == &next.p1) {
+        next.p1ChangedValues.push_back(nextOpponent[j]);
+      } else {
+        next.p2ChangedValues.push_back(nextOpponent[j]);
+      }
 
       next.turn = (next.turn == Player::P1 ? Player::P2 : Player::P1);
       next.normalize();
@@ -55,9 +63,19 @@ std::vector<State> generateMoves(const State &s) {
       continue;
 
     State next = s;
+    next.p1ChangedValues.clear();
+    next.p2ChangedValues.clear();
     auto &nextCurrent = next.turn == Player::P1 ? next.p1 : next.p2;
     nextCurrent[0] = i;
     nextCurrent[1] = j;
+
+    if (&nextCurrent == &next.p1) {
+      next.p1ChangedValues.push_back(i);
+      next.p1ChangedValues.push_back(j);
+    } else {
+      next.p2ChangedValues.push_back(i);
+      next.p2ChangedValues.push_back(j);
+    }
 
     next.turn = (next.turn == Player::P1 ? Player::P2 : Player::P1);
     next.normalize();
@@ -68,7 +86,7 @@ std::vector<State> generateMoves(const State &s) {
   return moves;
 }
 
-Outcome isWinning(const State &s) {
+Outcome getOutcome(const State &s) {
   static std::unordered_map<State, Outcome, StateHash> memo;
   static std::unordered_set<State, StateHash> inProgress;
 
@@ -96,7 +114,7 @@ Outcome isWinning(const State &s) {
   bool hasDrawMove = false;
 
   for (const auto &move : moves) {
-    Outcome result = isWinning(move);
+    Outcome result = getOutcome(move);
 
     if (result == Outcome::LOSS) {
       // Found a move that makes opponent lose - we win!
@@ -127,14 +145,14 @@ State getBestMove(const State &s) {
 
   // First try to find a winning move (opponent loses)
   for (const auto &move : moves) {
-    if (isWinning(move) == Outcome::LOSS) {
+    if (getOutcome(move) == Outcome::LOSS) {
       return move;
     }
   }
 
   // Next try to find a draw move (better than losing)
   for (const auto &move : moves) {
-    if (isWinning(move) == Outcome::DRAW) {
+    if (getOutcome(move) == Outcome::DRAW) {
       return move;
     }
   }
