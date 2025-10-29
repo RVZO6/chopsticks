@@ -1,16 +1,25 @@
 #pragma once
 #include <algorithm>
 #include <array>
-#include <functional> // for std::hash
-#include <tuple>
+#include <functional>
+
+// Game outcome from current player's perspective
+enum class Outcome {
+  WIN,  // Current player can force a win
+  LOSS, // Current player will lose with optimal play
+  DRAW  // Neither player can force a win (cycle/stalemate)
+};
+
+// Whose turn it is
+enum class Player { P1, P2 };
 
 struct State {
   std::array<int, 2> p1;
   std::array<int, 2> p2;
-  bool p1Turn;
+  Player turn;
 
-  void normalize();                          // normalize the hands
-  bool operator==(const State &other) const; // equality
+  void normalize();
+  bool operator==(const State &other) const;
 };
 
 // Hash function so we can use State as key in unordered_map

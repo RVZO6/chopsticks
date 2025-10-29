@@ -1,5 +1,6 @@
 #include "solver.h"
 #include <random>
+#include <unordered_map>
 #include <unordered_set>
 
 std::vector<State> generateMoves(const State &s) {
@@ -8,16 +9,13 @@ std::vector<State> generateMoves(const State &s) {
   // -----------------------------
   // ATTACK MOVES
   // -----------------------------
-  auto &current = s.p1Turn ? s.p1 : s.p2;
-  auto &opponent = s.p1Turn ? s.p2 : s.p1;
+  auto &current = s.turn == Player::P1 ? s.p1 : s.p2;
+  auto &opponent = s.turn == Player::P1 ? s.p2 : s.p1;
 
   for (int i = 0; i < 2; ++i) {
     if (current[i] == 0)
       continue;
 
-    // Skip if this hand has same value as previous hand (already processed)
-    // i = 1 (for 2 hands), checkingn if my left hand is equal to my right,
-    // therfore every move would be a dupe
     if (i > 0 && current[i] == current[i - 1])
       continue;
 
@@ -25,18 +23,17 @@ std::vector<State> generateMoves(const State &s) {
       if (opponent[j] == 0)
         continue;
 
-      // Skip if opponent hand has same value as previous (already processed)
       if (j > 0 && opponent[j] == opponent[j - 1])
         continue;
 
       State next = s;
-      auto &nextOpponent = next.p1Turn ? next.p2 : next.p1;
+      auto &nextOpponent = next.turn == Player::P1 ? next.p2 : next.p1;
 
       nextOpponent[j] += current[i];
       if (nextOpponent[j] >= 5)
         nextOpponent[j] = 0;
 
-      next.p1Turn = !next.p1Turn;
+      next.turn = (next.turn == Player::P1 ? Player::P2 : Player::P1);
       next.normalize();
 
       moves.push_back(next);
@@ -46,8 +43,8 @@ std::vector<State> generateMoves(const State &s) {
   // -----------------------------
   // SPLIT MOVES
   // -----------------------------
-  int cur0 = s.p1Turn ? s.p1[0] : s.p2[0];
-  int cur1 = s.p1Turn ? s.p1[1] : s.p2[1];
+  int cur0 = s.turn == Player::P1 ? s.p1[0] : s.p2[0];
+  int cur1 = s.turn == Player::P1 ? s.p1[1] : s.p2[1];
   int total = cur0 + cur1;
 
   for (int i = 0; i <= total / 2; ++i) {
@@ -58,11 +55,11 @@ std::vector<State> generateMoves(const State &s) {
       continue;
 
     State next = s;
-    auto &nextCurrent = next.p1Turn ? next.p1 : next.p2;
+    auto &nextCurrent = next.turn == Player::P1 ? next.p1 : next.p2;
     nextCurrent[0] = i;
     nextCurrent[1] = j;
 
-    next.p1Turn = !next.p1Turn;
+    next.turn = (next.turn == Player::P1 ? Player::P2 : Player::P1);
     next.normalize();
 
     moves.push_back(next);
@@ -71,38 +68,55 @@ std::vector<State> generateMoves(const State &s) {
   return moves;
 }
 
-bool isWinning(const State &s) {
-  static std::unordered_map<State, bool, StateHash> memo;
+Outcome isWinning(const State &s) {
+  static std::unordered_map<State, Outcome, StateHash> memo;
   static std::unordered_set<State, StateHash> inProgress;
 
-  auto &current = s.p1Turn ? s.p1 : s.p2;
+  auto &current = s.turn == Player::P1 ? s.p1 : s.p2;
 
+  // Base case: current player has no hands
   if (current[0] == 0 && current[1] == 0) {
-    return false;
+    return Outcome::LOSS;
   }
 
+  // Check memo
   if (memo.count(s)) {
     return memo[s];
   }
 
+  // Cycle detection - neither player can force a win
   if (inProgress.count(s)) {
-    return false; // Cycle = draw = not a forced win
+    return Outcome::DRAW;
   }
 
   inProgress.insert(s);
 
   auto moves = generateMoves(s);
+
+  bool hasDrawMove = false;
+
   for (const auto &move : moves) {
-    if (isWinning(move) == false) {
+    Outcome result = isWinning(move);
+
+    if (result == Outcome::LOSS) {
+      // Found a move that makes opponent lose - we win!
       inProgress.erase(s);
-      memo[s] = true;
-      return true;
+      memo[s] = Outcome::WIN;
+      return Outcome::WIN;
+    }
+
+    if (result == Outcome::DRAW) {
+      hasDrawMove = true;
     }
   }
 
   inProgress.erase(s);
-  memo[s] = false;
-  return false;
+
+  // If we have a draw move and no winning move, take the draw
+  // Otherwise we lose
+  Outcome outcome = hasDrawMove ? Outcome::DRAW : Outcome::LOSS;
+  memo[s] = outcome;
+  return outcome;
 }
 
 State getBestMove(const State &s) {
@@ -111,14 +125,21 @@ State getBestMove(const State &s) {
 
   auto moves = generateMoves(s);
 
-  // First try to find a winning move
+  // First try to find a winning move (opponent loses)
   for (const auto &move : moves) {
-    if (!isWinning(move)) {
+    if (isWinning(move) == Outcome::LOSS) {
       return move;
     }
   }
 
-  // No winning move - pick randomly
+  // Next try to find a draw move (better than losing)
+  for (const auto &move : moves) {
+    if (isWinning(move) == Outcome::DRAW) {
+      return move;
+    }
+  }
+
+  // All moves lead to opponent winning - pick randomly
   if (!moves.empty()) {
     std::uniform_int_distribution<> dis(0, moves.size() - 1);
     return moves[dis(gen)];
